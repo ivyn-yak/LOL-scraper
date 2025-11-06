@@ -37,7 +37,8 @@ def get_match_ids(puuid):
             "api_key" : RIOT_API_KEY,
             "startTime": get_start_time(),
             "start": start,
-            "count": 100  # max per request
+            "count": 100,  # max per request
+            "type": "ranked"
         }
         r = requests.get(url, params=params)
         match_ids = r.json()
@@ -71,7 +72,7 @@ def get_champion_masteries(puuid):
 
 # utils
 def get_start_time():
-    return int((datetime.datetime.now() - datetime.timedelta(days=30*8)).timestamp())
+    return int((datetime.datetime.now() - datetime.timedelta(days=30*3)).timestamp())
 
 def save_to_json(file_name, data):
     with open(file_name, "w") as file:
@@ -109,74 +110,30 @@ def wait_for_rate_limit(region):
     # record this request
     log.append(time.time())
 
-def filter_match_data(match, info, p):
-    filtered_match = pd.DataFrame([{
-                "gameId": info.get("gameId", -1),
-                "gameStartTimestamp": info.get("gameStartTimestamp", 0),
-                "gameDuration": info.get("gameDuration", 0),
-                "gameMode": info.get("gameMode", "NA"),
-                "gameType": info.get("gameType", "NA"),
-                "gameVersion": info.get("gameVersion", "NA"),
-                "mapId": info.get("mapId", 0),
-                "teamId": p.get("teamId", None),
-                "win": p.get("win", None),
-                "timePlayed": p.get("timePlayed", 0),
+def filter_match_data(match, info, participants):
 
-                # 👤 --- Player Info ---
-                "championName": p.get("championName", "NA"),
-                "champExperience": p.get("champExperience", 0),
-                "champLevel": p.get("champLevel", 0),
-
-                # 🪓 --- Combat ---
-                "kills": p.get("kills", 0),
-                "deaths": p.get("deaths", 0),
-                "assists": p.get("assists", 0),
-                "kda": p.get("kda", 0),
-                "doubleKills": p.get("doubleKills", 0),
-                "tripleKills": p.get("tripleKills", 0),
-                "quadraKills": p.get("quadraKills", 0),
-                "pentaKills": p.get("pentaKills", 0),
-                "largestKillingSpree": p.get("largestKillingSpree", 0),
-                "largestMultiKill": p.get("largestMultiKill", 0),
-
-                # 💥 --- Damage ---
-                "totalDamageDealt": p.get("totalDamageDealt", 0),
-                "totalDamageDealtToChampions": p.get("totalDamageDealtToChampions", 0),
-                "damageSelfMitigated": p.get("damageSelfMitigated", 0),
-                "totalDamageTaken": p.get("totalDamageTaken", 0),
-                "physicalDamageDealtToChampions": p.get("physicalDamageDealtToChampions", 0),
-                "magicDamageDealtToChampions": p.get("magicDamageDealtToChampions", 0),
-                "trueDamageDealtToChampions": p.get("trueDamageDealtToChampions", 0),
-                "teamDamagePercentage": p.get("challenges", {}).get("teamDamagePercentage", 0),
-
-                # 💰 --- Economy ---
-                "goldEarned": p.get("goldEarned", 0),
-                "goldSpent": p.get("goldSpent", 0),
-                "goldPerMinute": p.get("challenges", {}).get("goldPerMinute", 0),
-
-                # 👁️ --- Vision / Utility ---
-                "visionScore": p.get("visionScore", 0),
-                "wardsPlaced": p.get("wardsPlaced", 0),
-                "wardsKilled": p.get("wardsKilled", 0),
-                "wardTakedowns": p.get("challenges", {}).get("wardTakedowns", 0),
-                "controlWardsPlaced": p.get("challenges", {}).get("controlWardsPlaced", 0),
-
-                # 🎯 --- Objectives ---
-                "turretKills": p.get("turretKills", 0),
-                "inhibitorKills": p.get("inhibitorKills", 0),
-                "dragonKills": p.get("dragonKills", 0),
-                "baronKills": p.get("baronKills", 0),
-
-                # 🏃 --- Mobility / Survivability ---
-                "timeCCingOthers": p.get("timeCCingOthers", 0),
-                "totalTimeCCDealt": p.get("totalTimeCCDealt", 0),
-                "totalHeal": p.get("totalHeal", 0),
-                "tookLargeDamageSurvived": p.get("challenges", {}).get("tookLargeDamageSurvived", 0),
-
-                # 🗺️ --- Positioning / Strategy ---
-                "lane": p.get("lane", "NA"),
-                "role": p.get("role", "NA"),
-            }])
+    # flatten all 10 participants into column-wise structure
+    flattened = {}
+    for i, p in enumerate(participants, start=1):
+        flattened.update({
+            f"p{i}_teamId": p.get("teamId", None),
+            f"p{i}_championName": p.get("championName", "NA"),
+            f"p{i}_teamPosition": p.get("teamPosition", "NA"),
+        })
+    
+    # base match info (shared across all players)
+    match_info = {
+        "gameId": info.get("gameId", -1),
+        "gameStartTimestamp": info.get("gameStartTimestamp", 0),
+        "gameDuration": info.get("gameDuration", 0),
+        "gameMode": info.get("gameMode", "NA"),
+        "gameType": info.get("gameType", "NA"),
+        "gameVersion": info.get("gameVersion", "NA"),
+        "teamId100Win": 1 if info.get("teams", [{}])[0].get("win", None) else 0
+    }
+    
+    # combine both
+    filtered_match = pd.DataFrame([{**match_info, **flattened}])
     
     return pd.concat([match.reset_index(drop=True), filtered_match.reset_index(drop=True)], axis=1)
 
@@ -191,16 +148,16 @@ def save_match_data(match_ids, puuid, csv_file):
             print(f"skipping match id ({match_id}): game time too short ({info.get('gameDuration')})")
             continue
 
-        p = next((x for x in info.get("participants", []) if x.get("puuid") == puuid), None)
-
-        if p:
+        participants = info.get("participants", [])
+        
+        if participants:
             match = pd.DataFrame([{
                 # 🧠 --- Match Context ---
                 "matchId": match_id,
                 "puuid": puuid,
             }])
 
-            filtered_match = filter_match_data(match, info, p)
+            filtered_match = filter_match_data(match, info, participants)
 
             # Append to CSV
             filtered_match.to_csv(csv_file, mode='a', index=False,
