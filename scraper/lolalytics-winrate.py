@@ -46,10 +46,9 @@ def get_role_from_lane_icon(section):
         pass
     return None
 
-def main():
-    url = "https://lolalytics.com/lol/tierlist/?tier=diamond&region=sg&patch=15.19"
+def scrape_champion_data(lane):
+    url = f"https://lolalytics.com/lol/tierlist/?lane={lane}&tier=diamond&region=sg&patch=15.19"
     driver.get(url)
-    
     try:
         # Wait for at least one row
         WebDriverWait(driver, 15).until(
@@ -105,19 +104,33 @@ def main():
             # Scroll to bottom to trigger lazy loading
             driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
             time.sleep(1)  # wait for new rows to load
-
-        # --- Convert to DataFrame ---
-        df = pd.DataFrame(data, columns=["name", "role", "win_rate", "pick_rate", "ban_rate", "pbi", "num_games"])
-        print(df.head())
-
-        # --- Save to CSV ---
-        df.to_csv("lolalytics_champions.csv", index=False)
-        print(f"\n✅ Saved {len(df)} champions to lolalytics_champions.csv")
+        
+        return data
 
     except TimeoutException:
         print(f"⏱ Timeout loading page: {url}")
         return []
 
+def main():
+    all_data = []
+    lanes = ['top', 'jungle', 'middle', 'bottom', 'support']
+    for lane in lanes:
+        print(f"\n🚀 Starting scrape for lane: {lane}")
+        data = scrape_champion_data(lane)
+        if not data:
+            print(f"❌ No data scraped for lane: {lane}")
+            continue
+        else:
+            print(f"✅ Scraped {len(data)} champions for lane: {lane}")
+            all_data.extend(data)
+
+    # --- Convert to DataFrame ---
+    df = pd.DataFrame(all_data, columns=["name", "role", "win_rate", "pick_rate", "ban_rate", "pbi", "num_games"])
+    print(df.head())
+
+    # --- Save to CSV ---
+    df.to_csv("lolalytics_champions_all.csv", index=False)
+    print(f"\n✅ Saved {len(df)} champions to lolalytics_champions.csv")
 
 if __name__ == "__main__":
     try:
