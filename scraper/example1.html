@@ -1,0 +1,35 @@
+<div class="box box-padding-10">
+    <a href="/champions/winrates-by-xp/sg/diamond/sr-ranked" class="nocolor">
+<div class="graph-container">
+<h3 class="graph-title ">Winrate / Ranked Games Played</h3>
+<div class="graph" id="graphDD13" style="padding: 0px;"><canvas class="flot-base" style="direction: ltr; position: absolute; left: 0px; top: 0px; width: 411px; height: 250px;" width="822" height="500"></canvas><div class="flot-text" style="position: absolute; inset: 0px; font-size: smaller; color: rgb(84, 84, 84);"><div class="flot-x-axis flot-x1-axis xAxis x1Axis" style="position: absolute; inset: 0px; display: block;"><div class="flot-tick-label tickLabel" style="position: absolute; max-width: 68px; top: 234px; left: 23px; text-align: center;">0</div><div class="flot-tick-label tickLabel" style="position: absolute; max-width: 68px; top: 234px; left: 96px; text-align: center;">10</div><div class="flot-tick-label tickLabel" style="position: absolute; max-width: 68px; top: 234px; left: 171px; text-align: center;">20</div><div class="flot-tick-label tickLabel" style="position: absolute; max-width: 68px; top: 234px; left: 247px; text-align: center;">30</div><div class="flot-tick-label tickLabel" style="position: absolute; max-width: 68px; top: 234px; left: 322px; text-align: center;">40</div><div class="flot-tick-label tickLabel" style="position: absolute; max-width: 68px; top: 234px; left: 398px; text-align: center;">50</div></div><div class="flot-y-axis flot-y1-axis yAxis y1Axis" style="position: absolute; inset: 0px; display: block;"><div class="flot-tick-label tickLabel" style="position: absolute; top: 222px; left: 7px; text-align: right;">0%</div><div class="flot-tick-label tickLabel" style="position: absolute; top: 185px; left: 1px; text-align: right;">10%</div><div class="flot-tick-label tickLabel" style="position: absolute; top: 148px; left: 1px; text-align: right;">20%</div><div class="flot-tick-label tickLabel" style="position: absolute; top: 111px; left: 1px; text-align: right;">30%</div><div class="flot-tick-label tickLabel" style="position: absolute; top: 74px; left: 1px; text-align: right;">40%</div><div class="flot-tick-label tickLabel" style="position: absolute; top: 37px; left: 1px; text-align: right;">50%</div><div class="flot-tick-label tickLabel" style="position: absolute; top: 1px; left: 1px; text-align: right;">60%</div></div></div><canvas class="flot-bar-labels" style="direction: ltr; position: absolute; left: 0px; top: 0px; width: 411px; height: 250px;" width="822" height="500"></canvas><canvas class="flot-overlay" style="direction: ltr; position: absolute; left: 0px; top: 0px; width: 411px; height: 250px;" width="822" height="500"></canvas></div>
+</div>
+
+<script language="javascript" type="text/javascript">
+var graphGrid;
+var toUseGridgraphDD13 = graphGrid || {color: "#BBB", backgroundColor: "#FFF", borderWidth: 1, borderColor: "#E2E2E2"};
+toUseGridgraphDD13.hoverable = false;
+
+graphFunctions.push(function () {
+if ($("#graphDD13").is(":visible")) {
+$.plot($("#graphDD13"),
+        [{
+                color: window['wggreen'] || "wggreen",
+                data: [[0,52.05],[10,57.14],[20,44.440000000000005],[30,0],[40,33.33],[50,50]],
+                lines: {
+                    show: true,
+                    fill: true,
+                    fillColor: {colors: [{opacity: 0.1}, {opacity: 0.6}]}
+                }
+            }],
+        {
+            yaxis: {min:0,
+                tickFormatter: function (v, axis) {
+                    return v.toFixed(axis.tickDecimals) + "%"
+                }
+            },
+            grid: toUseGridgraphDD13                    });
+}
+});
+</script>        </a>
+</div>
